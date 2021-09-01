@@ -1,0 +1,6 @@
+name: Tarik Final Module
+description: The final module for creating tables
+
+type: module
+
+core_version_requirement: ^8.8 || ^9
