@@ -137,41 +137,40 @@ class TableForm extends FormBase
 
     for ($num = 0; $num <= $tab_num; $num++) {
       // Create header of table.
-      $form[$num]['table'] = [
+      $form['table' . $num] = [
         '#type' => 'table',
         '#header' => $titles,
-        '#tree' => TRUE,
         '#attributes' => [
           'id' => 'table-form',
         ],
       ];
 
       // Cycle for rows.
-      for ($j = 0; $j < $tables[$num]; ++$j) {
+      for ($j = 0; $j < $tables[$num]; $j++) {
 
         // Cycle for columns.
         for ($i = 0; $i <= $length; $i++) {
           if ($i == 0) {
-            $form[$num]['table'][$j][$titles[$i]] = [
+            $form['table' . $num][$j][$titles[$i]] = [
               '#type' => 'number',
               '#default_value' => date('Y') - $j,
               '#disabled' => TRUE,
             ];
           } elseif ($i == 4 || $i == 8 || $i == 12 || $i == 16 || $i == $length) {
-            $form[$num]['table'][$j][$titles[$i]] = [
+            $form['table'. $num][$j][$titles[$i]] = [
               '#type' => 'number',
               '#default_value' => NULL,
               '#disabled' => TRUE,
             ];
           } else {
-            $form[$num]['table'][$j][$titles[$i]] = [
+            $form['table'. $num][$j][$titles[$i]] = [
               '#type' => 'number',
             ];
           }
         }
       }
       // A function call button that adds a new row.
-      $form[$num]['action']['addYear'] = [
+      $form['addYear' . $num] = [
         '#type' => 'submit',
         '#value' => $this->t('Add row'),
         '#name' => $num,
@@ -183,12 +182,18 @@ class TableForm extends FormBase
 
 
     // A function call button that adds a new table.
-    $form['action']['addTable'] = [
+    $form['addTable'] = [
       '#type' => 'submit',
       '#value' => $this->t('Add Table'),
       '#submit' => [
         '::addTable',
       ],
+    ];
+
+    // A function call button that adds a new table.
+    $form['send'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Send'),
     ];
 
     return $form;
