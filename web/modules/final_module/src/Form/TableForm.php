@@ -73,18 +73,31 @@ class TableForm extends FormBase {
       $form_state->set('tables', $tables);
     }
 
+    $form['#prefix'] = '<div id="form-with-table">';
+    $form['#suffix'] = '</div>';
+
+    $form['btn-container'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => 'btn-container',
+      ],
+    ];
+
     // A function call button that adds a new table.
-    $form['addTable'] = [
+    $form['btn-container']['addTable'] = [
       '#type' => 'submit',
       '#value' => $this->t('Add Table'),
       '#name' => 'addTable',
       '#submit' => [
         '::addTable',
       ],
+      '#ajax' => [
+        'wrapper' => 'form-with-table',
+      ],
     ];
 
     // A function call button that adds a new table.
-    $form['send'] = [
+    $form['btn-container']['send'] = [
       '#type' => 'submit',
       '#value' => $this->t('Send'),
       '#name' => 'send',
@@ -105,6 +118,9 @@ class TableForm extends FormBase {
         '#name' => $num + 1,
         '#submit' => [
           '::addRow',
+        ],
+        '#ajax' => [
+          'wrapper' => 'form-with-table',
         ],
       ];
 
