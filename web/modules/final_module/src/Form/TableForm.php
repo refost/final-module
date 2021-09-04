@@ -9,8 +9,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Class that provide table form.
  */
-class TableForm extends FormBase
-{
+class TableForm extends FormBase {
 
   /**
    * This variable contains the Drupal service for translating text.
@@ -22,8 +21,7 @@ class TableForm extends FormBase
   /**
    * {@inheritDoc}
    */
-  public static function create(ContainerInterface $container)
-  {
+  public static function create(ContainerInterface $container) {
     $instance = parent::create($container);
     $instance->t = $container->get('string_translation');
     return $instance;
@@ -32,16 +30,14 @@ class TableForm extends FormBase
   /**
    * {@inheritDoc}
    */
-  public function getFormId()
-  {
+  public function getFormId() {
     return 'table_form';
   }
 
   /**
    * {@inheritDoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state)
-  {
+  public function buildForm(array $form, FormStateInterface $form_state) {
 
     // Array with title for cells.
     $titles = [
@@ -64,84 +60,60 @@ class TableForm extends FormBase
       'YTD',
     ];
 
-    // Length of array.
+    // Length of array with titles. Used to build columns in tables.
     $length = count($titles) - 1;
 
-    // Add one row if table have only header.
-//    $count_rows = $form_state->get('count_rows');
-//    if (empty($count_rows)) {
-//      $count_rows = 1;
-//      $form_state->set('count_rows', $count_rows);
-//    }
-
+    // Array with tables properties.
     $tables = $form_state->get('tables');
     if (empty($tables)) {
+
+      // The position of the number is the number of the table.
+      // The number in the array is the amount of rows.
       $tables = [1];
       $form_state->set('tables', $tables);
     }
 
-//    $num_tabs = $form_state->get('num_tabs');
-//    if (empty($num_tabs)) {
-//      $num_tabs = 1;
-//      $form_state->set('num_tabs', $num_tabs);
-//    }
+    // A function call button that adds a new table.
+    $form['addTable'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add Table'),
+      '#name' => 'addTable',
+      '#submit' => [
+        '::addTable',
+      ],
+    ];
 
-//    for ($num = 0; $num < $num_tabs; $num++) {
-//    // Create header of table.
-//    $form['table'][$num] = [
-//      '#type' => 'table',
-//      '#header' => $titles,
-//      '#attributes' => [
-//        'id' => 'table-form',
-//      ],
-//    ];
-//
-//    // Cycle for rows.
-//    for ($j = 0; $j < $count_rows; ++$j) {
-//
-//      // Cycle for columns.
-//      for ($i = 0; $i <= $length; $i++) {
-//        if ($i == 0) {
-//          $form['table'][$num][$j][$titles[$i]] = [
-//            '#type' => 'number',
-//            '#default_value' => date('Y') - $j,
-//            '#disabled' => TRUE,
-//          ];
-//        }
-//        elseif ($i == 4 || $i == 8 || $i == 12 || $i == 16 || $i == $length) {
-//          $form['table'][$num][$j][$titles[$i]] = [
-//            '#type' => 'number',
-//            '#default_value' => NULL,
-//            '#disabled' => TRUE,
-//          ];
-//        }
-//        else {
-//          $form['table'][$num][$j][$titles[$i]] = [
-//            '#type' => 'number',
-//          ];
-//        }
-//      }
-//    }
-//      // A function call button that adds a new row.
-//      $form['action']['addYear'] = [
-//        '#type' => 'submit',
-//        '#value' => $this->t('Add row'),
-//        '#name' => $num,
-//        '#submit' => [
-//          '::addRow',
-//        ],
-//      ];
-//    }
+    // A function call button that adds a new table.
+    $form['send'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Send'),
+      '#name' => 'send',
+    ];
 
     $tab_num = count($tables) - 1;
 
+    // Tables building loop.
     for ($num = 0; $num <= $tab_num; $num++) {
+
+      // A function call button that adds a new row.
+      $form['addYear' . $num] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Add row'),
+
+        // #name contains the number of tables. One is added because
+        // in a different way #name on the first iteration will be NULL.
+        '#name' => $num + 1,
+        '#submit' => [
+          '::addRow',
+        ],
+      ];
+
       // Create header of table.
       $form['table' . $num] = [
         '#type' => 'table',
         '#header' => $titles,
         '#attributes' => [
-          'id' => 'table-form',
+          'id' => 'table-form-' . $num,
         ],
       ];
 
@@ -156,45 +128,22 @@ class TableForm extends FormBase
               '#default_value' => date('Y') - $j,
               '#disabled' => TRUE,
             ];
-          } elseif ($i == 4 || $i == 8 || $i == 12 || $i == 16 || $i == $length) {
-            $form['table'. $num][$j][$titles[$i]] = [
+          }
+          elseif ($i == 4 || $i == 8 || $i == 12 || $i == 16 || $i == $length) {
+            $form['table' . $num][$j][$titles[$i]] = [
               '#type' => 'number',
               '#default_value' => NULL,
               '#disabled' => TRUE,
             ];
-          } else {
-            $form['table'. $num][$j][$titles[$i]] = [
+          }
+          else {
+            $form['table' . $num][$j][$titles[$i]] = [
               '#type' => 'number',
             ];
           }
         }
       }
-      // A function call button that adds a new row.
-      $form['addYear' . $num] = [
-        '#type' => 'submit',
-        '#value' => $this->t('Add row'),
-        '#name' => $num,
-        '#submit' => [
-          '::addRow',
-        ],
-      ];
     }
-
-
-    // A function call button that adds a new table.
-    $form['addTable'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Add Table'),
-      '#submit' => [
-        '::addTable',
-      ],
-    ];
-
-    // A function call button that adds a new table.
-    $form['send'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Send'),
-    ];
 
     return $form;
   }
@@ -203,9 +152,13 @@ class TableForm extends FormBase
    * Function that add new row to the table.
    */
   public function addRow(array &$form, FormStateInterface $form_state) {
+
+    // Getting a pressed button.
     $element = $form_state->getTriggeringElement();
     $tables = $form_state->get('tables');
-    $tables[$element['#name']]++;
+
+    // Minus one because #name is number of table + 1.
+    $tables[$element['#name'] - 1]++;
     $form_state->set('tables', $tables);
     $form_state->setRebuild();
   }
@@ -221,11 +174,12 @@ class TableForm extends FormBase
   }
 
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    \Drupal::messenger()->addStatus('sdfsdfsdfdsf');
+    \Drupal::messenger()->addStatus('sdfsdfsd');
     parent::validateForm($form, $form_state); // TODO: Change the autogenerated stub
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
   }
+
 }
