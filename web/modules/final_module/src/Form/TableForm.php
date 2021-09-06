@@ -2,7 +2,8 @@
 
 namespace Drupal\final_module\Form;
 
-use Drupal\block_content\Plugin\Menu\LocalAction\BlockContentAddLocalAction;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\MessageCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -195,89 +196,128 @@ class TableForm extends FormBase {
   }
 
   /**
-   * Check! Function that validate table.
+   * Function.
+   */
+  public function convertArray($length, $table) {
+    for ($i = 0; $i < $length; $i++) {
+      foreach ($table[$i] as $key => $value) {
+        if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
+          $all_values[] = $value;
+        }
+      }
+    }
+    return $all_values;
+  }
+
+  /**
+   * Function that validate table.
    */
   public function validate(array &$form, FormStateInterface $form_state) {
 
-    // Check!Get number of tables and number of rows.
+    // Getting an array with tables properties.
     $tables = $form_state->get('tables');
     $table_count = count($tables);
-
-    // Check! get all tables.
     $all_tables = $form_state->getValues();
 
+    // An array for the start and end points in the table.
+    // The starting point is where non-blank fields start from.
+    // The end point is the end of non-empty fields.
     $all_result = [];
 
-    // Check!Cycle for tables.
+    $non_error = TRUE;
+
+    // Loop that loops through the tables.
     for ($num = 0; $num < $table_count; $num++) {
 
-      // Check! array with all rows.
-      $all_values = [];
-      // Check! cycle that convert associative array in normal.
-      for ($i = 0; $i < $tables[$num]; $i++) {
-        foreach ($all_tables[$num][$i] as $key => $value) {
-          if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
-            $all_values[] = $value;
-          }
-        }
-      }
+      // An array for all cells in the table.
+      $all_values = $this->convertArray($tables[$num], $all_tables[$num]);
+
+      // There must be one more element in the array to find
+      // st_point correctly.
       $all_values[] = "";
+
+      // Now the counter and array have the same number of elements.
       $numb_cols = count($all_values) - 1;
 
+      // The point at which non-empty fields begin.
       $st_point = NULL;
+
+      // The ending point of non-empty fields.
       $end_point = NULL;
 
-      // Check! Table validate.
       for ($j = 0; $j < $numb_cols; $j++) {
 
-        // Check! Start point.
+        // Checking point at which non-empty fields begin.
+        // If point is the first in the array.
         if ($j == 0 && ($all_values[$j] !== "")) {
           $st_point = $j;
         }
+
+        // Else if point is the not first in the array.
         elseif (($all_values[$j] === "") && ($all_values[$j + 1] !== "")) {
           if ($st_point === NULL) {
             $st_point = $j + 1;
           }
           elseif ($st_point !== NULL) {
-            \Drupal::messenger()->addStatus("ERROR");
-            break;
+            $non_error = FALSE;
+            break 2;
           }
         }
 
-        // Check! End point.
-        if (($all_values[$j] !== "") && ($all_values[$j + 1] === "")) {
-
+        // Checking the ending point of non-empty fields.
+        // If point is the last in the array.
+        if (($j == ($numb_cols - 1)) && ($all_values[$j] !== "")) {
           if ($end_point === NULL) {
             $end_point = $j;
           }
-          elseif ($end_point !== NULL) {
-            \Drupal::messenger()->addStatus("ERROR");
-            break;
-          }
         }
-        elseif ($j == ($numb_cols - 1) && ($all_values[$j] !== "")) {
-          if ($st_point === NULL) {
-            $st_point = $j;
-          }
-          elseif (($end_point !== NULL) || ($all_values[$j-1] === "")) {
-            \Drupal::messenger()->addStatus("ERROR");
-            break;
-          }
-          elseif ($end_point === NULL) {
+
+        // If point is the not last in the array.
+        elseif (($all_values[$j] !== "") && ($all_values[$j + 1] === "")) {
+          if ($end_point === NULL) {
             $end_point = $j;
           }
         }
       }
 
-      $all_result[] = [$st_point, $end_point];
+      // An array containing the start and end points for all tables.
+      $all_result[] = [
+        $st_point,
+        $end_point,
+      ];
 
     }
 
-    // If all tables
-    $size = array_unique($tables);
+    $same = array_unique($tables);
 
-    if ($size == 1 && count($size) == 1) {
-      
+    // If all tables have 1 row then $same will have one element equal to 1.
+    if ($same[0] == 1 && count($same) == 1 && $non_error === TRUE) {
+
+      // Compare ranges of values.
+      for ($i = 0; $i < count($all_result); $i++) {
+        if ($all_result[0] != $all_result[$i]) {
+          $non_error = FALSE;
+        }
+      }
+
+    }
+
+    if ($non_error === TRUE) {
+      $response = new AjaxResponse();
+      $response->addCommand(
+        new MessageCommand(
+          'VALID',
+          '.table-form',
+          [
+            'type' => 'status',
+          ]
+        )
+      );
+      \Drupal::messenger()->addStatus('VALID');
+      $form_state->setRebuild();
+    }
+    else {
+      \Drupal::messenger()->addError('INVALID');
     }
 
   }
