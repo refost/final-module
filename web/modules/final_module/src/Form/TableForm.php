@@ -2,6 +2,7 @@
 
 namespace Drupal\final_module\Form;
 
+use Drupal\block_content\Plugin\Menu\LocalAction\BlockContentAddLocalAction;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -49,14 +50,15 @@ class TableForm extends FormBase {
       'Apr',
       'May',
       'Jun',
-      'Q3',
+      'Q2',
       'Jul',
       'Aug',
       'Sep',
-      'Q4',
+      'Q3',
       'Oct',
       'Nov',
       'Dec',
+      'Q4',
       'YTD',
     ];
 
@@ -101,15 +103,18 @@ class TableForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Send'),
       '#name' => 'send',
+      '#ajax' => [
+        'callback' => '::validate',
+      ],
     ];
 
     $tab_num = count($tables) - 1;
 
-    // Tables building loop.
+    // Tables building loop. $num is the table number.
     for ($num = 0; $num <= $tab_num; $num++) {
 
       // A function call button that adds a new row.
-      $form['addYear' . $num] = [
+      $form['table']['addYear' . $num] = [
         '#type' => 'submit',
         '#value' => $this->t('Add row'),
 
@@ -125,7 +130,7 @@ class TableForm extends FormBase {
       ];
 
       // Create header of table.
-      $form['table' . $num] = [
+      $form['table'][$num] = [
         '#type' => 'table',
         '#header' => $titles,
         '#attributes' => [
@@ -139,21 +144,21 @@ class TableForm extends FormBase {
         // Cycle for columns.
         for ($i = 0; $i <= $length; $i++) {
           if ($i == 0) {
-            $form['table' . $num][$j][$titles[$i]] = [
+            $form['table'][$num][$j][$titles[$i]] = [
               '#type' => 'number',
               '#default_value' => date('Y') - $j,
               '#disabled' => TRUE,
             ];
           }
-          elseif ($i == 4 || $i == 8 || $i == 12 || $i == 16 || $i == $length) {
-            $form['table' . $num][$j][$titles[$i]] = [
+          elseif ($i == 4|| $i == 8 || $i == 12 || $i == 16 || $i == $length) {
+            $form['table'][$num][$j][$titles[$i]] = [
               '#type' => 'number',
               '#default_value' => NULL,
               '#disabled' => TRUE,
             ];
           }
           else {
-            $form['table' . $num][$j][$titles[$i]] = [
+            $form['table'][$num][$j][$titles[$i]] = [
               '#type' => 'number',
             ];
           }
@@ -189,13 +194,98 @@ class TableForm extends FormBase {
     $form_state->setRebuild();
   }
 
+  /**
+   * Check! Function that validate table.
+   */
+  public function validate(array &$form, FormStateInterface $form_state) {
+
+    // Check!Get number of tables and number of rows.
+    $tables = $form_state->get('tables');
+    $table_count = count($tables);
+
+    // Check! get all tables.
+    $all_tables = $form_state->getValues();
+
+    $all_result = [];
+
+    // Check!Cycle for tables.
+    for ($num = 0; $num < $table_count; $num++) {
+
+      // Check! array with all rows.
+      $all_values = [];
+      // Check! cycle that convert associative array in normal.
+      for ($i = 0; $i < $tables[$num]; $i++) {
+        foreach ($all_tables[$num][$i] as $key => $value) {
+          if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
+            $all_values[] = $value;
+          }
+        }
+      }
+      $all_values[] = "";
+      $numb_cols = count($all_values) - 1;
+
+      $st_point = NULL;
+      $end_point = NULL;
+
+      // Check! Table validate.
+      for ($j = 0; $j < $numb_cols; $j++) {
+
+        // Check! Start point.
+        if ($j == 0 && ($all_values[$j] !== "")) {
+          $st_point = $j;
+        }
+        elseif (($all_values[$j] === "") && ($all_values[$j + 1] !== "")) {
+          if ($st_point === NULL) {
+            $st_point = $j + 1;
+          }
+          elseif ($st_point !== NULL) {
+            \Drupal::messenger()->addStatus("ERROR");
+            break;
+          }
+        }
+
+        // Check! End point.
+        if (($all_values[$j] !== "") && ($all_values[$j + 1] === "")) {
+
+          if ($end_point === NULL) {
+            $end_point = $j;
+          }
+          elseif ($end_point !== NULL) {
+            \Drupal::messenger()->addStatus("ERROR");
+            break;
+          }
+        }
+        elseif ($j == ($numb_cols - 1) && ($all_values[$j] !== "")) {
+          if ($st_point === NULL) {
+            $st_point = $j;
+          }
+          elseif (($end_point !== NULL) || ($all_values[$j-1] === "")) {
+            \Drupal::messenger()->addStatus("ERROR");
+            break;
+          }
+          elseif ($end_point === NULL) {
+            $end_point = $j;
+          }
+        }
+      }
+
+      $all_result[] = [$st_point, $end_point];
+
+    }
+
+    // If all tables
+    $size = array_unique($tables);
+
+    if ($size == 1 && count($size) == 1) {
+      
+    }
+
+  }
+
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    \Drupal::messenger()->addStatus('sdfsdfsd');
-    parent::validateForm($form, $form_state); // TODO: Change the autogenerated stub
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $values = $form_state->getValues();
   }
 
 }
