@@ -100,12 +100,13 @@ class TableForm extends FormBase {
     ];
 
     // A function call button that adds a new table.
-    $form['btn-container']['send'] = [
+    $form['btn-container']['Submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Send'),
       '#name' => 'send',
       '#ajax' => [
-        'callback' => '::validate',
+//        'callback' => '::validate',
+        'wrapper' => 'form-with-table ',
       ],
     ];
 
@@ -152,9 +153,10 @@ class TableForm extends FormBase {
             ];
           }
           elseif ($i == 4|| $i == 8 || $i == 12 || $i == 16 || $i == $length) {
+            $value = $form_state->getValue($num)[$j][$titles[$i]];
             $form['table'][$num][$j][$titles[$i]] = [
               '#type' => 'number',
-              '#default_value' => NULL,
+              '#default_value' => (isset($value)) ? $value : "",
               '#disabled' => TRUE,
             ];
           }
@@ -297,6 +299,7 @@ class TableForm extends FormBase {
       for ($i = 0; $i < count($all_result); $i++) {
         if ($all_result[0] != $all_result[$i]) {
           $non_error = FALSE;
+          break;
         }
       }
 
@@ -314,7 +317,6 @@ class TableForm extends FormBase {
         )
       );
       \Drupal::messenger()->addStatus('VALID');
-      $form_state->setRebuild();
     }
     else {
       \Drupal::messenger()->addError('INVALID');
@@ -326,6 +328,53 @@ class TableForm extends FormBase {
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
+//
+//    $a = $form_state->getValue(0)[0]['Jan'];
+//
+//    $form_state->setValueForElement($form['table'][0][0]['Q1'] , "9999");
+//    $form['table'][0][0]['Jan']['#value'] = 9999;
+//    \Drupal::messenger()->addStatus('sadasdas');
+
+    // Check! Getting values.
+    $all_tables = $form_state->getValues();
+
+    // Check! Getting tables values.
+    $tables = $form_state->get('tables');
+
+    // Check! Amount for values.
+    $amount_tab = count($tables);
+
+    // Check! .
+    for ($curr_tab = 0; $curr_tab < $amount_tab; $curr_tab++) {
+      $all_quarter = [];
+      $all_values = $this->convertArray($tables[$curr_tab], $all_tables[$curr_tab]);
+
+      $amount_val = count($all_values);
+
+      for ($pos_val = 0; $pos_val < $amount_val; $pos_val++) {
+        $a = $pos_val % 3;
+        if ($pos_val == 0 || $pos_val % 3 != 0) {
+          $quarter += $all_values[$pos_val];
+        }
+        else {
+          $quarter = ($quarter + 1) / 3;
+//          $form_state->setValueForElement($form['table'][$curr_tab][$row]['YTD'], $year);
+          $all_quarter[intdiv($pos_val, 12)][] = $quarter;
+          $quarter = $all_values[$pos_val];
+        }
+      }
+
+      $amount_quart = count($all_quarter);
+      for ($row = 0; $row < $amount_quart; $row++) {
+        $year = 0;
+        for ($element = 0; $element < count($all_quarter[$row]); $element++) {
+          $year += $all_quarter[$row][$element];
+        }
+        $form_state->setValueForElement($form['table'][$curr_tab][$row]['YTD'], $year);
+      }
+    }
+
+    $form_state->setRebuild();
   }
 
 }
