@@ -2,8 +2,6 @@
 
 namespace Drupal\final_module\Form;
 
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\MessageCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -102,27 +100,26 @@ class TableForm extends FormBase {
     // A function call button that adds a new table.
     $form['btn-container']['Submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Send'),
-      '#name' => 'send',
+      '#value' => $this->t('Submit'),
+      '#name' => 'submit',
       '#ajax' => [
-//        'callback' => '::validate',
         'wrapper' => 'form-with-table ',
       ],
     ];
 
-    $tab_num = count($tables) - 1;
+    $amount_tab = count($tables) - 1;
 
     // Tables building loop. $num is the table number.
-    for ($num = 0; $num <= $tab_num; $num++) {
+    for ($tab = 0; $tab <= $amount_tab; $tab++) {
 
       // A function call button that adds a new row.
-      $form['table']['addYear' . $num] = [
+      $form['table']['addYear' . $tab] = [
         '#type' => 'submit',
-        '#value' => $this->t('Add row'),
+        '#value' => $this->t('Add Year'),
 
         // #name contains the number of tables. One is added because
         // in a different way #name on the first iteration will be NULL.
-        '#name' => $num + 1,
+        '#name' => $tab + 1,
         '#submit' => [
           '::addRow',
         ],
@@ -132,48 +129,52 @@ class TableForm extends FormBase {
       ];
 
       // Create header of table.
-      $form['table'][$num] = [
+      $form['table'][$tab] = [
         '#type' => 'table',
         '#header' => $titles,
         '#attributes' => [
-          'id' => 'table-form-' . $num,
+          'id' => 'table-form-' . $tab,
         ],
       ];
 
       // Cycle for rows.
-      for ($j = 0; $j < $tables[$num]; $j++) {
+      for ($row = 0; $row < $tables[$tab]; $row++) {
 
         // Cycle for columns.
-        for ($i = 0; $i <= $length; $i++) {
-          if ($i == 0) {
-            $form['table'][$num][$j][$titles[$i]] = [
+        for ($col = 0; $col <= $length; $col++) {
+
+          if ($col == 0) {
+            $form['table'][$tab][$row][$titles[$col]] = [
               '#type' => 'number',
-              '#default_value' => date('Y') - $j,
+              '#default_value' => date('Y') - $row,
               '#disabled' => TRUE,
             ];
           }
-          elseif ($i == 4|| $i == 8 || $i == 12 || $i == 16 || $i == $length) {
-            $value = $form_state->getValue($num)[$j][$titles[$i]];
-            $form['table'][$num][$j][$titles[$i]] = [
+          elseif ($col == 4|| $col == 8 || $col == 12 || $col == 16 || $col == $length) {
+            $value = round($form_state->getValue($tab)[$row][$titles[$col]], 2);
+            $form['table'][$tab][$row][$titles[$col]] = [
               '#type' => 'number',
               '#default_value' => (isset($value)) ? $value : "",
               '#disabled' => TRUE,
             ];
           }
           else {
-            $form['table'][$num][$j][$titles[$i]] = [
+            $form['table'][$tab][$row][$titles[$col]] = [
               '#type' => 'number',
             ];
           }
+
         }
+
       }
+
     }
 
     return $form;
   }
 
   /**
-   * Function that add new row to the table.
+   * The function of adding a new row to the table.
    */
   public function addRow(array &$form, FormStateInterface $form_state) {
 
@@ -188,7 +189,7 @@ class TableForm extends FormBase {
   }
 
   /**
-   * Function that add new row to the table.
+   * The function of adding a new table to the form.
    */
   public function addTable(array &$form, FormStateInterface $form_state) {
     $tables = $form_state->get('tables');
@@ -198,11 +199,18 @@ class TableForm extends FormBase {
   }
 
   /**
-   * Function.
+   * Function for converting an associative array to normal.
+   *
+   * @param array $array
+   *   Associative array.
+   *
+   * @return mixed
+   *   Normal array.
    */
-  public function convertArray($length, $table) {
+  public function convertArray($array) {
+    $length = count($array);
     for ($i = 0; $i < $length; $i++) {
-      foreach ($table[$i] as $key => $value) {
+      foreach ($array[$i] as $key => $value) {
         if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
           $all_values[] = $value;
         }
@@ -212,166 +220,167 @@ class TableForm extends FormBase {
   }
 
   /**
-   * Function that validate table.
+   * {@inheritDoc}
    */
-  public function validate(array &$form, FormStateInterface $form_state) {
-
-    // Getting an array with tables properties.
-    $tables = $form_state->get('tables');
-    $table_count = count($tables);
-    $all_tables = $form_state->getValues();
-
-    // An array for the start and end points in the table.
-    // The starting point is where non-blank fields start from.
-    // The end point is the end of non-empty fields.
-    $all_result = [];
-
-    $non_error = TRUE;
-
-    // Loop that loops through the tables.
-    for ($num = 0; $num < $table_count; $num++) {
-
-      // An array for all cells in the table.
-      $all_values = $this->convertArray($tables[$num], $all_tables[$num]);
-
-      // There must be one more element in the array to find
-      // st_point correctly.
-      $all_values[] = "";
-
-      // Now the counter and array have the same number of elements.
-      $numb_cols = count($all_values) - 1;
-
-      // The point at which non-empty fields begin.
-      $st_point = NULL;
-
-      // The ending point of non-empty fields.
-      $end_point = NULL;
-
-      for ($j = 0; $j < $numb_cols; $j++) {
-
-        // Checking point at which non-empty fields begin.
-        // If point is the first in the array.
-        if ($j == 0 && ($all_values[$j] !== "")) {
-          $st_point = $j;
-        }
-
-        // Else if point is the not first in the array.
-        elseif (($all_values[$j] === "") && ($all_values[$j + 1] !== "")) {
-          if ($st_point === NULL) {
-            $st_point = $j + 1;
-          }
-          elseif ($st_point !== NULL) {
-            $non_error = FALSE;
-            break 2;
-          }
-        }
-
-        // Checking the ending point of non-empty fields.
-        // If point is the last in the array.
-        if (($j == ($numb_cols - 1)) && ($all_values[$j] !== "")) {
-          if ($end_point === NULL) {
-            $end_point = $j;
-          }
-        }
-
-        // If point is the not last in the array.
-        elseif (($all_values[$j] !== "") && ($all_values[$j + 1] === "")) {
-          if ($end_point === NULL) {
-            $end_point = $j;
-          }
-        }
-      }
-
-      // An array containing the start and end points for all tables.
-      $all_result[] = [
-        $st_point,
-        $end_point,
-      ];
-
-    }
-
-    $same = array_unique($tables);
-
-    // If all tables have 1 row then $same will have one element equal to 1.
-    if ($same[0] == 1 && count($same) == 1 && $non_error === TRUE) {
-
-      // Compare ranges of values.
-      for ($i = 0; $i < count($all_result); $i++) {
-        if ($all_result[0] != $all_result[$i]) {
-          $non_error = FALSE;
-          break;
-        }
-      }
-
-    }
-
-    if ($non_error === TRUE) {
-      $response = new AjaxResponse();
-      $response->addCommand(
-        new MessageCommand(
-          'VALID',
-          '.table-form',
-          [
-            'type' => 'status',
-          ]
-        )
-      );
-      \Drupal::messenger()->addStatus('VALID');
-    }
-    else {
-      \Drupal::messenger()->addError('INVALID');
-    }
-
-  }
-
   public function validateForm(array &$form, FormStateInterface $form_state) {
+
+    $name = $form_state->getTriggeringElement()['#name'];
+
+    if ($name == 'submit') {
+      // Getting an array with tables properties.
+      $tables = $form_state->get('tables');
+      $amount_tab = count($tables);
+      $all_tables = $form_state->getValues();
+
+      // An array for the start and end points in the table.
+      // The starting point is where non-blank fields start from.
+      // The end point is the end of non-empty fields.
+      $all_result = [];
+
+      $non_error = TRUE;
+
+      // Loop that loops through the tables.
+      for ($tab = 0; $tab < $amount_tab; $tab++) {
+
+        // An array for all cells in the table.
+        $all_values = $this->convertArray($all_tables[$tab]);
+
+        // There must be one more element in the array to find
+        // st_point correctly.
+        $all_values[] = "";
+
+        // Now the counter and array have the same number of elements.
+        $amount_cols = count($all_values) - 1;
+
+        // The point at which non-empty fields begin.
+        $st_point = NULL;
+
+        // The ending point of non-empty fields.
+        $end_point = NULL;
+
+        for ($col = 0; $col < $amount_cols; $col++) {
+
+          // Checking point at which non-empty fields begin.
+          // If point is the first in the array.
+          if ($col == 0 && ($all_values[$col] !== "")) {
+            $st_point = $col;
+          }
+
+          // Else if point is the not first in the array.
+          elseif (($all_values[$col] === "") && ($all_values[$col + 1] !== "")) {
+            if ($st_point === NULL) {
+              $st_point = $col + 1;
+            }
+            elseif ($st_point !== NULL) {
+              $form_state->setError($form['table'][$tab], 'Invalid');
+              $non_error = FALSE;
+              break 2;
+            }
+          }
+
+          // Checking the ending point of non-empty fields.
+          // If point is the last in the array.
+          if (($col == ($amount_cols - 1)) && ($all_values[$$col] !== "")) {
+            if ($end_point === NULL) {
+              $end_point = $col;
+            }
+          }
+
+          // If point is the not last in the array.
+          elseif (($all_values[$col] !== "") && ($all_values[$col + 1] === "")) {
+            if ($end_point === NULL) {
+              $end_point = $col;
+            }
+          }
+        }
+
+        // An array containing the start and end points for all tables.
+        $all_result[] = [
+          $st_point,
+          $end_point,
+        ];
+
+      }
+
+      $same = array_unique($tables);
+
+      // If all tables have 1 row then $same will have one element equal to 1.
+      if ($same[0] == 1 && count($same) == 1 && $non_error === TRUE) {
+
+        // Compare ranges of values.
+        for ($i = 0; $i < count($all_result); $i++) {
+          if ($all_result[0] != $all_result[$i]) {
+            $form_state->setError($form['table'][$tab], 'Invalid');
+            $non_error = FALSE;
+            break;
+          }
+        }
+
+      }
+
+      if ($non_error === TRUE) {
+        \Drupal::messenger()->addStatus('Valid');
+      }
+    }
+    return $non_error;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-//
-//    $a = $form_state->getValue(0)[0]['Jan'];
-//
-//    $form_state->setValueForElement($form['table'][0][0]['Q1'] , "9999");
-//    $form['table'][0][0]['Jan']['#value'] = 9999;
-//    \Drupal::messenger()->addStatus('sadasdas');
 
-    // Check! Getting values.
     $all_tables = $form_state->getValues();
-
-    // Check! Getting tables values.
     $tables = $form_state->get('tables');
 
-    // Check! Amount for values.
     $amount_tab = count($tables);
 
-    // Check! .
+    // Table calculation.
     for ($curr_tab = 0; $curr_tab < $amount_tab; $curr_tab++) {
       $all_quarter = [];
       $all_values = $this->convertArray($tables[$curr_tab], $all_tables[$curr_tab]);
-
       $amount_val = count($all_values);
 
-      for ($pos_val = 0; $pos_val < $amount_val; $pos_val++) {
-        $a = $pos_val % 3;
+      // Quarter calculation.
+      for ($pos_val = 0; $pos_val <= $amount_val; $pos_val++) {
+
+        // At all points that are multiples of 3, we
+        // have a specific field for the amount.
         if ($pos_val == 0 || $pos_val % 3 != 0) {
           $quarter += $all_values[$pos_val];
         }
+        // If this is not done, then all fourth quarters will be
+        // out of the row in the next position.
+        elseif ($pos_val % 12 == 0) {
+          $quarter = ($quarter + 1) / 3;
+          $all_quarter[intdiv($pos_val, 12) - 1][] = $quarter;
+          $quarter = $all_values[$pos_val];
+        }
         else {
           $quarter = ($quarter + 1) / 3;
-//          $form_state->setValueForElement($form['table'][$curr_tab][$row]['YTD'], $year);
           $all_quarter[intdiv($pos_val, 12)][] = $quarter;
           $quarter = $all_values[$pos_val];
         }
+
       }
 
       $amount_quart = count($all_quarter);
+
+      // YTD calculation and setting values in the form.
       for ($row = 0; $row < $amount_quart; $row++) {
+
         $year = 0;
+
         for ($element = 0; $element < count($all_quarter[$row]); $element++) {
           $year += $all_quarter[$row][$element];
+          $form_state->setValueForElement($form['table'][$curr_tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
         }
+
+        $year = ($year + 1) / 4;
         $form_state->setValueForElement($form['table'][$curr_tab][$row]['YTD'], $year);
+
       }
+
     }
 
     $form_state->setRebuild();
