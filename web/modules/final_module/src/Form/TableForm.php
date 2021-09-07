@@ -156,11 +156,13 @@ class TableForm extends FormBase {
               '#type' => 'number',
               '#default_value' => (isset($value)) ? $value : "",
               '#disabled' => TRUE,
+              '#step' => 0.01,
             ];
           }
           else {
             $form['table'][$tab][$row][$titles[$col]] = [
               '#type' => 'number',
+              '#step' => 0.00001,
             ];
           }
 
@@ -203,12 +205,13 @@ class TableForm extends FormBase {
    *
    * @param array $array
    *   Associative array.
+   * @param int $length
+   *   Length of array.
    *
    * @return mixed
    *   Normal array.
    */
-  public function convertArray($array) {
-    $length = count($array);
+  public function convertArray($length, $array) {
     for ($i = 0; $i < $length; $i++) {
       foreach ($array[$i] as $key => $value) {
         if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
@@ -243,7 +246,7 @@ class TableForm extends FormBase {
       for ($tab = 0; $tab < $amount_tab; $tab++) {
 
         // An array for all cells in the table.
-        $all_values = $this->convertArray($all_tables[$tab]);
+        $all_values = $this->convertArray($amount_tab, $all_tables[$tab]);
 
         // There must be one more element in the array to find
         // st_point correctly.
@@ -336,9 +339,9 @@ class TableForm extends FormBase {
     $amount_tab = count($tables);
 
     // Table calculation.
-    for ($curr_tab = 0; $curr_tab < $amount_tab; $curr_tab++) {
+    for ($tab = 0; $tab < $amount_tab; $tab++) {
       $all_quarter = [];
-      $all_values = $this->convertArray($tables[$curr_tab], $all_tables[$curr_tab]);
+      $all_values = $this->convertArray($tables[$tab], $all_tables[$tab]);
       $amount_val = count($all_values);
 
       // Quarter calculation.
@@ -373,11 +376,11 @@ class TableForm extends FormBase {
 
         for ($element = 0; $element < count($all_quarter[$row]); $element++) {
           $year += $all_quarter[$row][$element];
-          $form_state->setValueForElement($form['table'][$curr_tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
+          $form_state->setValueForElement($form['table'][$tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
         }
 
         $year = ($year + 1) / 4;
-        $form_state->setValueForElement($form['table'][$curr_tab][$row]['YTD'], $year);
+        $form_state->setValueForElement($form['table'][$tab][$row]['YTD'], $year);
 
       }
 
