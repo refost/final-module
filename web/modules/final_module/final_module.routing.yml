@@ -2,6 +2,6 @@ final_module.table_page:
   path: '/form-table'
   defaults:
     _title: 'Yours table'
-    _controller: 'Drupal\final_module\Controller\TableController::build'
+    _form: 'Drupal\final_module\Form\TableForm'
   requirements:
     _permission: 'access content'

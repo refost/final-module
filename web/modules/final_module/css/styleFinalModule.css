@@ -1,0 +1,29 @@
+#form-with-table td {
+  padding: 0;
+  margin: 0;
+}
+
+#form-with-table td input {
+  margin: 0;
+}
+
+#form-with-table thead th{
+  text-align: center;
+}
+
+#form-with-table tbody .form-item{
+  width: 50px;
+}
+
+#form-with-table tbody .form-number{
+  -moz-appearance:textfield;
+}
+
+.form-number {
+  text-align: center;
+  -moz-appearance:textfield;
+}
+.form-number::-webkit-outer-spin-button,
+.form-number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}

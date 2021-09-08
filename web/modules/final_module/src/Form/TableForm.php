@@ -68,6 +68,8 @@ class TableForm extends FormBase {
     $tables = $form_state->get('tables');
     if (empty($tables)) {
 
+      $values = $form_state->getValues();
+
       // The position of the number is the number of the table.
       // The number in the array is the amount of rows.
       $tables = [1];
@@ -129,7 +131,7 @@ class TableForm extends FormBase {
       ];
 
       // Create header of table.
-      $form['table'][$tab] = [
+      $form['table']['tab' . $tab] = [
         '#type' => 'table',
         '#header' => $titles,
         '#attributes' => [
@@ -144,23 +146,23 @@ class TableForm extends FormBase {
         for ($col = 0; $col <= $length; $col++) {
 
           if ($col == 0) {
-            $form['table'][$tab][$row][$titles[$col]] = [
+            $form['table']['tab' . $tab][$row][$titles[$col]] = [
               '#type' => 'number',
               '#default_value' => date('Y') - $row,
               '#disabled' => TRUE,
             ];
           }
           elseif ($col == 4|| $col == 8 || $col == 12 || $col == 16 || $col == $length) {
-            $value = round($form_state->getValue($tab)[$row][$titles[$col]], 2);
-            $form['table'][$tab][$row][$titles[$col]] = [
+            $value = $form_state->getValue('tab' . $tab)[$row][$titles[$col]];
+            $form['table']['tab' . $tab][$row][$titles[$col]] = [
               '#type' => 'number',
-              '#default_value' => (isset($value)) ? $value : "",
+              '#default_value' => ($value != 0) ? round($value, 2) : 0,
               '#disabled' => TRUE,
               '#step' => 0.01,
             ];
           }
           else {
-            $form['table'][$tab][$row][$titles[$col]] = [
+            $form['table']['tab' . $tab][$row][$titles[$col]] = [
               '#type' => 'number',
               '#step' => 0.00001,
             ];
@@ -172,6 +174,7 @@ class TableForm extends FormBase {
 
     }
 
+    $form['#attached']['library'][] = 'final_module/finalModule';
     return $form;
   }
 
@@ -246,7 +249,7 @@ class TableForm extends FormBase {
       for ($tab = 0; $tab < $amount_tab; $tab++) {
 
         // An array for all cells in the table.
-        $all_values = $this->convertArray($amount_tab, $all_tables[$tab]);
+        $all_values = $this->convertArray($amount_tab, $all_tables['tab' . $tab]);
 
         // There must be one more element in the array to find
         // st_point correctly.
@@ -275,7 +278,7 @@ class TableForm extends FormBase {
               $st_point = $col + 1;
             }
             elseif ($st_point !== NULL) {
-              $form_state->setError($form['table'][$tab], 'Invalid');
+              $form_state->setError($form['table'], 'Invalid');
               $non_error = FALSE;
               break 2;
             }
@@ -283,7 +286,7 @@ class TableForm extends FormBase {
 
           // Checking the ending point of non-empty fields.
           // If point is the last in the array.
-          if (($col == ($amount_cols - 1)) && ($all_values[$$col] !== "")) {
+          if (($col == ($amount_cols - 1)) && ($all_values[$col] !== "")) {
             if ($end_point === NULL) {
               $end_point = $col;
             }
@@ -313,7 +316,7 @@ class TableForm extends FormBase {
         // Compare ranges of values.
         for ($i = 0; $i < count($all_result); $i++) {
           if ($all_result[0] != $all_result[$i]) {
-            $form_state->setError($form['table'][$tab], 'Invalid');
+            $form_state->setError($form['table'], 'Invalid');
             $non_error = FALSE;
             break;
           }
@@ -324,8 +327,9 @@ class TableForm extends FormBase {
       if ($non_error === TRUE) {
         \Drupal::messenger()->addStatus('Valid');
       }
+      return $non_error;
     }
-    return $non_error;
+
   }
 
   /**
@@ -341,7 +345,7 @@ class TableForm extends FormBase {
     // Table calculation.
     for ($tab = 0; $tab < $amount_tab; $tab++) {
       $all_quarter = [];
-      $all_values = $this->convertArray($tables[$tab], $all_tables[$tab]);
+      $all_values = $this->convertArray($tables[$tab], $all_tables['tab' . $tab]);
       $amount_val = count($all_values);
 
       // Quarter calculation.
@@ -376,11 +380,11 @@ class TableForm extends FormBase {
 
         for ($element = 0; $element < count($all_quarter[$row]); $element++) {
           $year += $all_quarter[$row][$element];
-          $form_state->setValueForElement($form['table'][$tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
+          $form_state->setValueForElement($form['table']['tab' . $tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
         }
 
         $year = ($year + 1) / 4;
-        $form_state->setValueForElement($form['table'][$tab][$row]['YTD'], $year);
+        $form_state->setValueForElement($form['table']['tab' . $tab][$row]['YTD'], $year);
 
       }
 
