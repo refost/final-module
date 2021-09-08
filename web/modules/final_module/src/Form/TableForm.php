@@ -359,12 +359,12 @@ class TableForm extends FormBase {
         // If this is not done, then all fourth quarters will be
         // out of the row in the next position.
         elseif ($pos_val % 12 == 0) {
-          $quarter = ($quarter + 1) / 3;
+          $quarter > 0 ? $quarter = ($quarter + 1) / 3 : $quarter = 0;
           $all_quarter[intdiv($pos_val, 12) - 1][] = $quarter;
           $quarter = $all_values[$pos_val];
         }
         else {
-          $quarter = ($quarter + 1) / 3;
+          $quarter > 0 ? $quarter = ($quarter + 1) / 3 : $quarter = 0;
           $all_quarter[intdiv($pos_val, 12)][] = $quarter;
           $quarter = $all_values[$pos_val];
         }
@@ -382,8 +382,7 @@ class TableForm extends FormBase {
           $year += $all_quarter[$row][$element];
           $form_state->setValueForElement($form['table']['tab' . $tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
         }
-
-        $year = ($year + 1) / 4;
+        $year > 0 ? $year = ($year + 1) / 4 : $year = 0;
         $form_state->setValueForElement($form['table']['tab' . $tab][$row]['YTD'], $year);
 
       }

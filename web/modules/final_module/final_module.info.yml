@@ -4,6 +4,3 @@ description: The final module for creating tables
 type: module
 
 core_version_requirement: ^8.8 || ^9
-
-libraries:
-  - final_module/finalModule
