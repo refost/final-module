@@ -215,6 +215,7 @@ class TableForm extends FormBase {
    *   Normal array.
    */
   public function convertArray($length, $array) {
+    $all_values = [];
     for ($i = 0; $i < $length; $i++) {
       foreach ($array[$i] as $key => $value) {
         if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
@@ -249,11 +250,11 @@ class TableForm extends FormBase {
       for ($tab = 0; $tab < $amount_tab; $tab++) {
 
         // An array for all cells in the table.
-        $all_values = $this->convertArray($amount_tab, $all_tables['tab' . $tab]);
+        $all_values = $this->convertArray($tables[$tab], $all_tables['tab' . $tab]);
 
         // There must be one more element in the array to find
         // st_point correctly.
-        $all_values[] = "";
+//        $all_values[] = "";
 
         // Now the counter and array have the same number of elements.
         $amount_cols = count($all_values) - 1;
