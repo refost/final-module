@@ -72,7 +72,7 @@ class TableForm extends FormBase {
 
       // The position of the number is the number of the table.
       // The number in the array is the amount of rows.
-      $tables = [1];
+      $tables = [0];
       $form_state->set('tables', $tables);
     }
 
@@ -140,7 +140,7 @@ class TableForm extends FormBase {
       ];
 
       // Cycle for rows.
-      for ($row = 0; $row < $tables[$tab]; $row++) {
+      for ($row = $tables[$tab]; $row >= 0; $row--) {
 
         // Cycle for columns.
         for ($col = 0; $col <= $length; $col++) {
@@ -198,7 +198,7 @@ class TableForm extends FormBase {
    */
   public function addTable(array &$form, FormStateInterface $form_state) {
     $tables = $form_state->get('tables');
-    $tables[] = 1;
+    $tables[] = 0;
     $form_state->set('tables', $tables);
     $form_state->setRebuild();
   }
@@ -216,7 +216,7 @@ class TableForm extends FormBase {
    */
   public function convertArray($length, $array) {
     $all_values = [];
-    for ($i = 0; $i < $length; $i++) {
+    for ($i = $length; $i >= 0; $i--) {
       foreach ($array[$i] as $key => $value) {
         if ($key != 'Year' && $key != 'Q1' && $key != 'Q2' && $key != 'Q3' && $key != 'Q4' && $key != 'YTD') {
           $all_values[] = $value;
@@ -254,7 +254,7 @@ class TableForm extends FormBase {
 
         // There must be one more element in the array to find
         // st_point correctly.
-//        $all_values[] = "";
+        $all_values[] = "";
 
         // Now the counter and array have the same number of elements.
         $amount_cols = count($all_values) - 1;
@@ -312,7 +312,7 @@ class TableForm extends FormBase {
       $same = array_unique($tables);
 
       // If all tables have 1 row then $same will have one element equal to 1.
-      if ($same[0] == 1 && count($same) == 1 && $non_error === TRUE) {
+      if ($same[0] == 0 && count($same) == 1 && $non_error === TRUE) {
 
         // Compare ranges of values.
         for ($i = 0; $i < count($all_result); $i++) {
@@ -374,6 +374,8 @@ class TableForm extends FormBase {
 
       $amount_quart = count($all_quarter);
 
+      $all_quarter = array_values(array_reverse($all_quarter));
+
       // YTD calculation and setting values in the form.
       for ($row = 0; $row < $amount_quart; $row++) {
 
@@ -381,6 +383,7 @@ class TableForm extends FormBase {
 
         for ($element = 0; $element < count($all_quarter[$row]); $element++) {
           $year += $all_quarter[$row][$element];
+
           $form_state->setValueForElement($form['table']['tab' . $tab][$row]['Q' . ($element + 1)], $all_quarter[$row][$element]);
         }
         $year > 0 ? $year = ($year + 1) / 4 : $year = 0;
